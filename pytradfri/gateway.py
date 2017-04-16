@@ -2,13 +2,14 @@
 from datetime import datetime
 
 from .const import (
-    ROOT_DEVICES, ROOT_GROUPS, ROOT_MOODS, ROOT_TRANSITIONS,
+    ROOT_DEVICES, ROOT_GROUPS, ROOT_MOODS, ROOT_SMART_TASKS,
     PATH_GATEWAY_INFO, ATTR_NTP, ATTR_FIRMWARE_VERSION,
     ATTR_CURRENT_TIME_UNIX, ATTR_CURRENT_TIME_ISO8601, ATTR_FIRST_SETUP,
     ATTR_GATEWAY_ID)
 from .device import Device
 from .group import Group
 from .mood import Mood
+from .smart_task import SmartTask
 
 
 class Gateway(object):
@@ -33,16 +34,15 @@ class Gateway(object):
         """Return specified device."""
         return Device(self.api, self.api('get', [ROOT_DEVICES, device_id]))
 
-    def get_transitions(self):
+    def get_smart_tasks(self):
         """Return the transitions linked to the gateway."""
-        transitions = self.api('get', [ROOT_TRANSITIONS])
+        tasks = self.api('get', [ROOT_SMART_TASKS])
 
-        return [self.get_transition(tran) for tran in transitions]
+        return [self.get_task(task) for task in tasks]
 
-    def get_transition(self, transition_id):
+    def get_task(self, task_id):
         """Return specified transition."""
-        return Transition(self.api, self.api(
-            'get', [ROOT_TRANSITIONS, transition_id]))
+        return SmartTask(self.api, self.api('get', [ROOT_SMART_TASKS, task_id]))
 
     def get_groups(self):
         """Return the groups linked to the gateway."""

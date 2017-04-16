@@ -18,6 +18,7 @@ if __name__ == '__main__':
     api = api_factory(sys.argv[1], sys.argv[2])
     gateway = Gateway(api)
     devices = gateway.get_devices()
+    tasks = gateway.get_smart_tasks()
     lights = [dev for dev in devices if dev.has_light_control]
     light = lights[0]
     groups = gateway.get_groups()
@@ -51,5 +52,6 @@ if __name__ == '__main__':
     print("> lights[1].light_control.set_dimmer(20)")
     print("> groups")
     print("> moods")
+    print("> tasks")
     print("> dump_devices()")
     print("> dump_all()")
