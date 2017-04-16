@@ -24,3 +24,5 @@ ATTR_LIGHT_DIMMER = "5851"  # Dimmer, not following spec: 0..255
 ATTR_LIGHT_COLOR = "5706"  # string representing a value in some color space
 ATTR_LIGHT_COLOR_X = "5709"
 ATTR_LIGHT_COLOR_Y = "5710"
+
+ATTR_TRANSITION_TIME = "5712"
