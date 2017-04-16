@@ -11,7 +11,7 @@ CONST_WED = 4
 CONST_THU = 8
 CONST_FRI = 16
 CONST_SAT = 32
-CONST_SUN = 32
+CONST_SUN = 64
 
 class SmartTask:
     """Represent a group."""
@@ -105,27 +105,20 @@ class SmartTask:
 DEBUG STUFF
 
 https://gist.github.com/r41d/5d62033f88b3046bccf406c9158d4e59
-// Transition
-{  
-   '5850':0, // on/off
-   '9044':[ // TRIGGER_TIME_INTERVAL
-      {  
-         '9047':0,
-         '9046':6
-      }
-   ],
-   '9042':{   //start action
-      '5850':1, // onoff
-      '15013':[  // light setting
-         {  
-            '9003':65537, // device id
-            '5712':18000, // TRANSITION_TIME
-            '5851':254 // dimmer
-         }
-      ]
-   },
-   '9041':0, // repeat days
-}
+// Transition for two devices
+{'5850': 1, // ATTR_LIGHT_STATE
+ '9002': 1492349682, // ATTR_CREATED_AT
+ '9003': 317094, // ATTR_ID
+ '9040': 4, // ATTR_SMART_TASK_TYPE
+ '9041': 0, // ATTR_REPEAT_DAYS
+ '9042': {'15013': [{'5712': 18000, '5851': 254, '9003': 65538},
+                    {'5712': 18000, '5851': 254, '9003': 65537}],
+                       ^^^ ATTR_TRANSITION_TIME
+          '5850': 1},
+ '9044': [{'9046': 8, '9047': 15}]} ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL
+                                  , ATTR_SMART_TASK_TRIGGER_TIME_START_HOUR
+                                  , ATTR_SMART_TASK_TRIGGER_TIME_START_MIN
+
 
 ## Not home
 {  
