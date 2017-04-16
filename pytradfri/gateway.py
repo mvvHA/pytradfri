@@ -2,18 +2,20 @@
 from datetime import datetime
 
 from .const import (
-    ROOT_DEVICES, ROOT_GROUPS, ROOT_MOODS, PATH_GATEWAY_INFO,
-    ATTR_NTP, ATTR_FIRMWARE_VERSION, ATTR_CURRENT_TIME_UNIX,
-    ATTR_CURRENT_TIME_ISO8601, ATTR_FIRST_SETUP, ATTR_GATEWAY_ID)
+    ROOT_DEVICES, ROOT_GROUPS, ROOT_MOODS, ROOT_TRANSITIONS,
+    PATH_GATEWAY_INFO, ATTR_NTP, ATTR_FIRMWARE_VERSION,
+    ATTR_CURRENT_TIME_UNIX, ATTR_CURRENT_TIME_ISO8601, ATTR_FIRST_SETUP,
+    ATTR_GATEWAY_ID)
 from .device import Device
 from .group import Group
 from .mood import Mood
 
 
 class Gateway(object):
-    """This class connects to the IKEA Tradfri Gateway"""
+    """This class connects to the IKEA Tradfri Gateway."""
 
     def __init__(self, api):
+        """Initialize class."""
         self.api = api
 
     def get_endpoints(self):
@@ -22,7 +24,7 @@ class Gateway(object):
         return [line.split(';')[0][2:-1] for line in data.split(',')]
 
     def get_devices(self):
-        """Returns the devices linked to the gateway"""
+        """Return all devices linked to the gateway."""
         devices = self.api('get', [ROOT_DEVICES])
 
         return [self.get_device(dev) for dev in devices]
@@ -30,6 +32,17 @@ class Gateway(object):
     def get_device(self, device_id):
         """Return specified device."""
         return Device(self.api, self.api('get', [ROOT_DEVICES, device_id]))
+
+    def get_transitions(self):
+        """Return the transitions linked to the gateway."""
+        transitions = self.api('get', [ROOT_TRANSITIONS])
+
+        return [self.get_transition(tran) for tran in transitions]
+
+    def get_transition(self, transition_id):
+        """Return specified transition."""
+        return Transition(self.api, self.api(
+            'get', [ROOT_TRANSITIONS, transition_id]))
 
     def get_groups(self):
         """Return the groups linked to the gateway."""
@@ -67,7 +80,10 @@ class Gateway(object):
 
 
 class GatewayInfo:
+    """This class returns info on the IKEA Tradfri Gateway."""
+
     def __init__(self, api, raw):
+        """Initialize class."""
         self.api = api
         self.raw = raw
 

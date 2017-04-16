@@ -15,7 +15,8 @@ from .const import (
     ATTR_LIGHT_DIMMER,
     ATTR_LIGHT_COLOR_X,
     ATTR_LIGHT_COLOR_Y,
-    ATTR_LIGHT_COLOR
+    ATTR_LIGHT_COLOR,
+    ATTR_TRANSITION_TIME
 )
 
 
@@ -200,6 +201,12 @@ class LightControl:
             ATTR_LIGHT_COLOR_Y: color_y
         }, index=index)
 
+    def set_transition_time(self, transition_time, *, index=0):
+        """Set xy color of the light."""
+        self.set_values({
+            ATTR_TRANSITION_TIME: transition_time
+        }, index=index)
+
     def set_values(self, values, *, index=0):
         """Set values on light control."""
         assert len(self.raw) == 1, \
@@ -242,6 +249,10 @@ class Light:
     def xy_color(self):
         return (self.raw.get(ATTR_LIGHT_COLOR_X),
                 self.raw.get(ATTR_LIGHT_COLOR_Y))
+
+    @property
+    def transition_time(self):
+        return (self.raw.get(ATTR_TRANSITION_TIME))
 
     @property
     def raw(self):
