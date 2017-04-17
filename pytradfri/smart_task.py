@@ -1,6 +1,23 @@
-from datetime import datetime
+"""Smart tasks set timers to turn on/off lights in various ways."""
 
-from .const import *
+from datetime import datetime
+from .const import (
+    ATTR_CREATED_AT,
+    ATTR_ID,
+    ATTR_LIGHT_STATE,
+    ATTR_SMART_TASK_LIGHTS_OFF,
+    ATTR_SMART_TASK_NOT_AT_HOME,
+    ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL,
+    ATTR_SMART_TASK_TRIGGER_TIME_START_HOUR,
+    ATTR_SMART_TASK_TRIGGER_TIME_START_MIN,
+    ATTR_SMART_TASK_TYPE,
+    ATTR_SMART_TASK_WAKE_UP,
+    ATTR_TRANSITION_TIME,
+    ATTR_REPEAT_DAYS,
+    ATTR_START_ACTION,
+    ROOT_START_ACTION,
+    ROOT_TRANSITIONS
+)
 
 
 # The gateway stores days as bit
@@ -13,143 +30,138 @@ CONST_FRI = 16
 CONST_SAT = 32
 CONST_SUN = 64
 
+
 class SmartTask:
     """Represent a group."""
+
     def __init__(self, gateway, raw):
+        """Initialize smart task class."""
         self._gateway = gateway
 #        self.api = gateway.api
         self.raw = raw
 
     @property
-    def is_transition(self):
-        """Boolean representing if this is a transition task."""
-        return self.raw.get(ATTR_SMART_TASK_TYPE) == ATTR_SMART_TASK_TRANSITION
+    def path(self):
+        return [ROOT_TRANSITIONS, self.id]
 
     @property
-    def is_not_home(self):#OK
-        """Boolean representing if this is a not home task."""
-        return self.raw.get(ATTR_SMART_TASK_TYPE) == ATTR_SMART_TASK_NOT_HOME
+    def state(self):
+        """Boolean representing the light state of the transition."""
+        return self.raw.get(ATTR_LIGHT_STATE) == 1
 
     @property
-    def is_on_off(self):#OK
-        """Boolean representing if this is an on/off task."""
-        return self.raw.get(ATTR_SMART_TASK_TYPE) == ATTR_SMART_TASK_ON_OFF
-
-    @property
-    def task_type(self):
-        """Return the task type in plain text."""
-        if self.is_transition:
-            return "Transition"
-        if self.is_not_home:
-            return "Not Home"
-        if self.is_on_off:
-            return "Automatic On/Off"
-
-    @property
-    def id(self):#OK
-        return self.raw.get(ATTR_ID)
-
-    @property
-    def created_at(self):#OK
+    def created_at(self):
         if ATTR_CREATED_AT not in self.raw:
             return None
         return datetime.utcfromtimestamp(self.raw[ATTR_CREATED_AT])
 
     @property
-    def path(self):#OK
-        return [ROOT_TRANSITIONS, self.id]
+    def id(self):
+        return self.raw.get(ATTR_ID)
 
     @property
-    def state(self):#OK
-        """Boolean representing the light state of the transition."""
-        return self.raw.get(ATTR_LIGHT_STATE) == 1
+    def task_type_id(self):
+        return self.raw.get(ATTR_SMART_TASK_TYPE)
 
     @property
-    def transition_time(self):#OK
-        """A transition runs for this long from the time in task_start."""
-        return self.raw.get(ATTR_TRANSITION_TIME)
-        
+    def task_type_name(self):
+        """Return the task type in plain text."""
+        if self.is_wake_up:
+            return "Wake Up"
+        if self.is_not_at_home:
+            return "Not At Home"
+        if self.if_lights_off:
+            return "Lights Off"
+
     @property
-    def task_start(self):#OK
-        """
-        Return the hour and minute the task starts.
-        
-        Sorry for poor programming...
-        
-        Time is set according to iso8601
-        """
-        hour = (
-            self.raw.get(ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL)[0]
-            [ATTR_SMART_TASK_TRIGGER_TIME_START_HOUR])
-        min = (
-            self.raw.get(ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL)[0]
-            [ATTR_SMART_TASK_TRIGGER_TIME_START_MIN])
-        
-        return (hour, min)
+    def is_wake_up(self):
+        """Boolean representing if this is a wake up task."""
+        return self.raw.get(ATTR_SMART_TASK_TYPE) == ATTR_SMART_TASK_WAKE_UP
+
+    @property
+    def is_not_at_home(self):
+        """Boolean representing if this is a not home task."""
+        return self.raw.get(
+            ATTR_SMART_TASK_TYPE) == ATTR_SMART_TASK_NOT_AT_HOME
+
+    @property
+    def is_lights_off(self):
+        """Boolean representing if this is a lights off task."""
+        return self.raw.get(ATTR_SMART_TASK_TYPE) == ATTR_SMART_TASK_LIGHTS_OFF
 
     @property
     def repeat_days(self):
         """Binary representation of weekdays the event takes place."""
         return self.raw.get(ATTR_REPEAT_DAYS)
-        
-    def __repr__(self):#OK
-        state = 'on' if self.state else 'off'
-        return '<Task {} - {} - {}>'.format(self.id, self.task_type, state)
 
-    def update(self):#OK
+    @property
+    def start_action(self):
+        return self.raw.get(ATTR_START_ACTION)
+
+    @property
+    def start_action_state(self):
+        return self.start_action[ATTR_LIGHT_STATE]
+
+    @property
+    def task_start_parameters(self):
+        return self.raw.get(ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL)[0]
+
+    @property
+    def task_start_time_seconds(self):  # WIP
+        """Return the hour and minute (represented in seconds) the task starts.
+
+        Time is set according to iso8601
+        """
+        hour = self.task_start_parameters[
+            ATTR_SMART_TASK_TRIGGER_TIME_START_HOUR] * 60 * 60
+        min = self.task_start_parameters[
+            ATTR_SMART_TASK_TRIGGER_TIME_START_MIN] * 60
+
+        return hour + min
+
+    @property
+    def transition_time(self):
+        """A transition runs for this long from the time in task_start.
+
+        0 = once, 1 = mon, 2 = tue, [...], 127 = all days
+        """
+        return self.raw.get(ATTR_TRANSITION_TIME)
+
+    @property
+    def task_control(self):
+        return TaskControl(self)
+
+    def __repr__(self):
+        state = 'on' if self.state else 'off'
+        return '<Task {} - {} - {}>'.format(
+            self.id, self.task_type_name, state)
+
+    def update(self):
         """Update the group."""
         self.raw = self.api('get', self.path)
 
+
+class TaskControl:
+    """Class to control the tasks."""
+
+    def __init__(self, task):
+        """Initialize TaskControl."""
+        self._task = task
+
+#    @property
+#    def tasks(self):
+#        """Return task objects of the task  control."""
+#        return [Light(self._device, i) for i in range(len(self.raw))]
+
+    @property
+    def raw(self):
+        """Return raw data that it represents."""
+        return self._task.raw[ATTR_START_ACTION][ROOT_START_ACTION]
+
+
 """
-
-DEBUG STUFF
-
-https://gist.github.com/r41d/5d62033f88b3046bccf406c9158d4e59
-// Transition for two devices
-{'5850': 1, // ATTR_LIGHT_STATE
- '9002': 1492349682, // ATTR_CREATED_AT
- '9003': 317094, // ATTR_ID
- '9040': 4, // ATTR_SMART_TASK_TYPE
- '9041': 0, // ATTR_REPEAT_DAYS
- '9042': {'15013': [{'5712': 18000, '5851': 254, '9003': 65538},
-                    {'5712': 18000, '5851': 254, '9003': 65537}],
-                       ^^^ ATTR_TRANSITION_TIME
-          '5850': 1},
- '9044': [{'9046': 8, '9047': 15}]} ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL
-                                  , ATTR_SMART_TASK_TRIGGER_TIME_START_HOUR
-                                  , ATTR_SMART_TASK_TRIGGER_TIME_START_MIN
-
-
-## Not home
-{  
-   '9002':1492371443,
-   '9041':0,
-   '5850':1,
-   '9044':[  
-      {  
-         '9047':30,
-         '9049':30,
-         '9048':7,
-         '9046':6
-      }
-   ],
-   '9042':{  
-      '15013':[  
-         {  
-            '9003':65537
-         }
-      ],
-      '5850':1
-   },
-   '9003':320223,
-   '9040':1,
-   '9043':{  
-      '15013':[  
-         {  
-            '9003':65537
-         }
-      ],
-      '5850':0
-   }
-
+### task start
+# '9042': {'15013': [{'5712': 18000, '5851': 254, '9003': 65538},
+#                    {'5712': 18000, '5851': 254, '9003': 65537}],
+#          '5850': 1},
 """
