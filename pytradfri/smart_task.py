@@ -120,14 +120,6 @@ class SmartTask:
         return hour + min
 
     @property
-    def transition_time(self):
-        """A transition runs for this long from the time in task_start.
-
-        0 = once, 1 = mon, 2 = tue, [...], 127 = all days
-        """
-        return self.raw.get(ATTR_TRANSITION_TIME)
-
-    @property
     def task_control(self):
         return TaskControl(self)
 
@@ -141,6 +133,28 @@ class SmartTask:
         self.raw = self.api('get', self.path)
 
 
+class TaskInfo:
+    """Class to show settings for a task."""
+
+    def __init__(self, task):
+        """Initialize TaskControl."""
+        self._task = task
+
+    @property
+    def id(self):
+        return self.raw.get(ATTR_ID)
+
+    @property
+    def transition_time(self):
+        """A transition runs for this long from the time in task_start.
+
+        """Value is in seconds x 10
+        return self.raw.get(ATTR_TRANSITION_TIME) / 60 / 10
+
+    @property
+    def dimmer(self):
+        return self.raw.get(ATTR_LIGHT_DIMMER)
+
 class TaskControl:
     """Class to control the tasks."""
 
@@ -148,10 +162,20 @@ class TaskControl:
         """Initialize TaskControl."""
         self._task = task
 
-#    @property
-#    def tasks(self):
-#        """Return task objects of the task  control."""
-#        return [Light(self._device, i) for i in range(len(self.raw))]
+    def set_dimmer(self, dimmer, *, index=0):
+        """Set dimmer value of a light.
+
+        Integer between 0..255
+        """
+        self.set_values({
+            ATTR_LIGHT_DIMMER: dimmer,
+        }, index=index)
+
+    def set_transiton_time(self, transition_time, *, index=0):
+        """Set transition time for dimmer."""
+        self.set_values({
+            ATTR_TRANSITION_TIME: transition_time * 60 * 10,
+        }, index=index)
 
     @property
     def raw(self):
