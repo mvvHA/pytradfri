@@ -1,9 +1,12 @@
 """Smart tasks set timers to turn on/off lights in various ways."""
 
+import json #debug remove
+
 from datetime import datetime
 from .const import (
     ATTR_CREATED_AT,
     ATTR_ID,
+    ATTR_LIGHT_DIMMER,
     ATTR_LIGHT_STATE,
     ATTR_SMART_TASK_LIGHTS_OFF,
     ATTR_SMART_TASK_NOT_AT_HOME,
@@ -16,7 +19,7 @@ from .const import (
     ATTR_REPEAT_DAYS,
     ATTR_START_ACTION,
     ROOT_START_ACTION,
-    ROOT_TRANSITIONS
+    ROOT_SMART_TASKS
 )
 
 
@@ -34,15 +37,14 @@ CONST_SUN = 64
 class SmartTask:
     """Represent a group."""
 
-    def __init__(self, gateway, raw):
+    def __init__(self, api, raw):
         """Initialize smart task class."""
-        self._gateway = gateway
-#        self.api = gateway.api
+        self.api = api
         self.raw = raw
 
     @property
     def path(self):
-        return [ROOT_TRANSITIONS, self.id]
+        return [ROOT_SMART_TASKS, self.id]
 
     @property
     def state(self):
@@ -65,7 +67,9 @@ class SmartTask:
 
     @property
     def task_type_name(self):
-        """Return the task type in plain text."""
+        """Return the task type in plain text.
+
+        Own interpretation of names"""
         if self.is_wake_up:
             return "Wake Up"
         if self.is_not_at_home:
@@ -107,7 +111,7 @@ class SmartTask:
         return self.raw.get(ATTR_SMART_TASK_TRIGGER_TIME_INTERVAL)[0]
 
     @property
-    def task_start_time_seconds(self):  # WIP
+    def task_start_time_seconds(self):
         """Return the hour and minute (represented in seconds) the task starts.
 
         Time is set according to iso8601
@@ -132,28 +136,8 @@ class SmartTask:
         """Update the group."""
         self.raw = self.api('get', self.path)
 
-
-class TaskInfo:
-    """Class to show settings for a task."""
-
-    def __init__(self, task):
-        """Initialize TaskControl."""
-        self._task = task
-
-    @property
-    def id(self):
-        return self.raw.get(ATTR_ID)
-
-    @property
-    def transition_time(self):
-        """A transition runs for this long from the time in task_start.
-
-        """Value is in seconds x 10
-        return self.raw.get(ATTR_TRANSITION_TIME) / 60 / 10
-
-    @property
-    def dimmer(self):
-        return self.raw.get(ATTR_LIGHT_DIMMER)
+#>>> light.light_control.lights[0].dimmer
+#>>> task.light_control.tasks
 
 class TaskControl:
     """Class to control the tasks."""
@@ -161,6 +145,11 @@ class TaskControl:
     def __init__(self, task):
         """Initialize TaskControl."""
         self._task = task
+
+    @property
+    def tasks(self):
+        """Return task objects of the task control."""
+        return [TaskInfo(self._task, i) for i in range(len(self.raw))]
 
     def set_dimmer(self, dimmer, *, index=0):
         """Set dimmer value of a light.
@@ -171,11 +160,41 @@ class TaskControl:
             ATTR_LIGHT_DIMMER: dimmer,
         }, index=index)
 
+
+# '9042': {'15013': [{'5712': 18000, '5851': 254, '9003': 65538},
+#                    {'5712': 18000, '5851': 254, '9003': 65537}],
+#          '5850': 1},
+    @property
+    def create_commando(self):
+        nested = {'babba', 'goo'}
+        data = {
+           ATTR_START_ACTION : 'ACME',
+           'shares' : 100,
+           'price' : nested
+        }
+        json_str = json.dumps(data)
+        return json_str
+
     def set_transiton_time(self, transition_time, *, index=0):
         """Set transition time for dimmer."""
+
         self.set_values({
             ATTR_TRANSITION_TIME: transition_time * 60 * 10,
         }, index=index)
+
+    def set_values(self, values, *, index=0):
+        """Set values on light control."""
+#        assert len(self.raw) == 1, \
+#            'Only devices with 1 light supported'
+        print(self._task.path)
+        print(values)
+        jsonstring = ATTR_START_ACTION
+        print(jsonstring)
+        self._task.api('put', self._task.path, {
+            [ATTR_START_ACTION]: [
+                values
+            ]
+        })
 
     @property
     def raw(self):
@@ -189,3 +208,32 @@ class TaskControl:
 #                    {'5712': 18000, '5851': 254, '9003': 65537}],
 #          '5850': 1},
 """
+
+
+class TaskInfo:
+    """Class to show settings for a task."""
+
+    def __init__(self, task, index):
+        """Initialize TaskInfo."""
+        self.task = task
+        self.index = index
+
+    @property
+    def id(self):
+        return self.raw[self.index].get(ATTR_ID)
+
+    @property
+    def transition_time(self):
+        """A transition runs for this long from the time in task_start.
+
+        Value is in seconds x 10"""
+        return self.raw.get(ATTR_TRANSITION_TIME) / 60 / 10
+
+    @property
+    def dimmer(self):
+        return self.raw.get(ATTR_LIGHT_DIMMER)
+
+    @property
+    def raw(self):
+        """Return raw data that it represents."""
+        return self.task
